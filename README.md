@@ -34,9 +34,8 @@ The system uses **React + Vite** for the frontend and **FastAPI (Python)** for t
 - SQL (schema in `db_infobot.sql`)
 
 ### Tools
-- Git
-- VS Code
-- Postman
+- PyCharm (Backend)
+- VS Code (Frontend)
 
 ---
 
