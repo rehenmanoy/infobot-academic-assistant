@@ -1,0 +1,379 @@
+
+.tss-1akey0g-MUIDataTableHeadCell-data {
+    color: #000079;
+    font-weight: bold;
+}
+
+.block
+{
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+.circle
+{
+    border-radius: 50%;
+    width: 35px;
+    height: 35px;
+    background-color: blueviolet;
+    align-items: center;
+    text-align: center;
+    font-weight: bold;
+    font-size: 15pt;
+    color:white;
+}
+
+
+.table-container {
+    width: 100%;
+}
+
+.table {
+    width: 100%;
+    max-width: 100%;
+}
+
+
+
+/* From uiverse.io by @satyamchaudharydev */
+/* removing default style of button */
+
+.navbar-search button {
+    border: none;
+    background: none;
+    color: #8b8ba7;
+}
+
+/* styling of whole input container */
+.navbar-search {
+    float: right;
+    --timing: 0.3s;
+    --width-of-input: 30%;
+    /*width of whole search box */
+    --height-of-input: 2.5em;
+    --border-height: 2px;
+    --input-bg: #dfe7f5;
+    --border-color: #2f2ee9;
+    --border-radius: 0.6em;
+    --after-border-radius: 1px;
+    position: relative;
+    width: var(--width-of-input);
+    height: var(--height-of-input);
+    display: flex;
+    align-items: center;
+    padding-inline: 0.8em;
+    border-radius: var(--border-radius);
+    transition: border-radius 0.5s ease;
+    background: var(--input-bg, #fff);
+    margin: 0.1rem;
+    margin-right: 1rem;
+}
+
+/* styling of Input */
+.input {
+    font-family: PanchariUni;
+    font-size: 18px;
+    background-color: transparent;
+    width: 100%;
+    height: 100%;
+    /*padding-inline: 0.5em;*/
+    /*padding-block: 0.7em;*/
+    border: none;
+}
+
+/* styling of animated border */
+.navbar-search:before {
+    content: "";
+    position: absolute;
+    background: var(--border-color);
+    transform: scaleX(0);
+    transform-origin: center;
+    width: 100%;
+    height: var(--border-height);
+    left: 0;
+    bottom: 0;
+    border-radius: 1px;
+    transition: transform var(--timing) ease;
+}
+
+/* Hover on Input */
+.navbar-search:focus-within {
+    border-radius: var(--after-border-radius);
+}
+
+input:focus {
+    outline: none;
+}
+
+/* here is code of animated border */
+.navbar-search:focus-within:before {
+    transform: scale(1);
+}
+
+
+/* sizing svg icons */
+.navbar-search svg {
+    width: 1.0625em;
+    margin-top: 0.1875em;
+}
+
+
+option {
+    position: absolute;
+    background-color: #ffffff;
+    border-radius: 12em;
+    width: 10em;
+    height: 6em;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 99;
+    cursor: pointer;
+}
+
+.select-class {
+    background-color: transparent;
+    /*background-color: #dfe7f5;*/
+    width: 8em;
+    border-radius: 12em;
+    color: black;
+    padding: 0.5em 1em;
+    border: 0.1em solid transparent;
+    /*border-color: transparent transparent rgba(0, 0, 0, 0.1) transparent;*/
+    cursor: pointer;
+}
+
+.logout-button {
+    background-color: rgb(20, 52, 212);
+    color: rgb(255, 255, 255);
+    margin-left: 0.5em;
+    margin-right: 0.5em;
+}
+
+.logout-button:hover {
+    background-color: rgb(255, 63, 63);
+}
+
+@font-face {
+    font-family: 'Head';
+    src: url('../assets/fonts/Rubik-VariableFont_wght.ttf') format('truetype');
+    font-weight: bold;
+    font-style: normal;
+}
+
+.head {
+    font-family: 'Head';
+    margin: 0;
+    margin-left: 0.5em;
+}
+
+.card-body {
+    padding: 1em;
+}
+
+h5 {
+    width: fit-content;
+}
+
+.email-head {
+    width: 20%;
+    float: right;
+}
+
+.horizontal-line {
+    border-top: 1px solid #000000;
+    opacity: 20%;
+    margin: 1em;
+}
+
+.row-small {
+    width: 40%;
+}
+
+.row-flex {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+}
+
+.switch {
+    position: relative;
+    height: 1.5rem;
+    width: 3rem;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    border-radius: 9999px;
+    background-color: rgba(100, 116, 139, 0.377);
+    transition: all .3s ease;
+}
+
+.switch:checked {
+    background-color: rgba(32, 151, 243, 1);
+}
+
+.switch::before {
+    position: absolute;
+    content: "";
+    left: calc(1.5rem - 1.6rem);
+    top: calc(1.5rem - 1.6rem);
+    display: block;
+    height: 1.6rem;
+    width: 1.6rem;
+    cursor: pointer;
+    border: 1px solid rgba(100, 116, 139, 0.527);
+    border-radius: 9999px;
+    background-color: rgba(255, 255, 255, 1);
+    box-shadow: 0 3px 10px rgba(100, 116, 139, 0.327);
+    transition: all .3s ease;
+}
+
+.switch:hover::before {
+    box-shadow: 0 0 0px 8px rgba(0, 0, 0, .15)
+}
+
+.switch:checked:hover::before {
+    box-shadow: 0 0 0px 8px rgba(32, 151, 243, .15)
+}
+
+.switch:checked:before {
+    transform: translateX(100%);
+    border-color: rgba(32, 151, 243, 1);
+}
+
+.flowmanager{
+    display: flex;
+    flex-direction: row;
+    height: 80vh;
+    width: 85vw;
+    gap:10px;
+    margin-top:2px;
+    margin-left:10px;
+}
+.TreeViewer {
+    width: 30vw;
+    height: 90vh;
+    border-radius: 0.6em;
+    display: flex;
+}
+
+.MainFlowViewer
+{
+    width:calc(75vw - 25vw);
+    height:95vh;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+
+.TreeViewerRow1
+{
+    width: 30vw;
+    height: 50vh;
+    margin-left: -3px;
+    padding: 10px;
+    border-radius: 0.5em 0.5em 0 0;
+    font-family: "Poppins", sans-serif;
+    display: flex;
+    gap:5px;
+    flex-direction: column;
+
+}
+.TreeViewerCol1
+{
+    width: 50vw;
+    height: 20vh;
+    margin-left: -3px;
+    padding: 10px;
+    font-family: "Poppins", sans-serif;
+    display: flex;
+    gap:15px;
+    flex-direction: row;
+
+}
+
+.listA{
+    padding: 10px;
+    width: 29vw;
+    height: 100%;
+    background-color: #fff;
+    border-radius: 3px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.3);
+    gap:3px;
+}
+.listB{
+    padding: 10px;
+    width: 29vw;
+    height: 25vh;
+    background-color: #fff;
+    border-radius: 3px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.3);
+    gap:3px;
+}
+.listAFlow{
+    padding: 10px;
+    width: 29vw;
+    height: 20vh;
+    background-color: #fff;
+    border-radius: 3px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.3);
+    gap:3px;
+}
+
+.TreeViewerRow1_unit_list_submit_btn
+{
+    margin-top: 10px;
+    width: 28vw;
+    height: 5vh;
+    display: flex;
+    flex-direction: row-reverse;
+}
+
+.submit_btn_tree
+{
+    display: flex;
+    width:70px;
+    height: 30px;
+    border-radius: 3px;
+    border: 0.2em solid rgb(6, 165, 136);
+    background-color: rgb(6, 165, 136);
+    justify-content: center;
+    color: white;
+}
+.submit_btn_tree:hover{
+    border: 0.2em solid rgb(5, 108, 89);
+    background-color: rgb(5, 108, 89);
+}
+
+.flowViewer
+{
+    margin-top:10px;
+    width: 49.2vw;
+    height: 90vh;
+    border-radius: 5px;
+    margin-left: 5px;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.3);
+    background-color: #fffffc;
+    overflow: auto;
+    display: flex;
+    justify-content: center;
+}
+
+
+.btn_holder{
+    padding: 10px;
+    width: 29vw;
+    height: 100%;
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-end;
+    gap:3px;
+}
+

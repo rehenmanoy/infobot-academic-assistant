@@ -1,0 +1,82 @@
+/*
+ Created on 27-01-2025
+ Project: frontend
+ Author: Donis Abraham
+*/
+
+
+@layer base_green {
+    :root[data-theme="green"] {
+        --sidebar-background: 0 0% 98%;
+        --sidebar-foreground: 240 5.3% 26.1%;
+        --sidebar-primary: 144 62% 44%;
+        --sidebar-primary-foreground: 0 0% 98%;
+        --sidebar-accent: 144 62% 44%;
+        --sidebar-accent-foreground: 240 4.8% 95.9%;
+        --sidebar-border: 144 28% 85%;
+        --sidebar-ring: 144 91.2% 39.8%;
+        --background: 0 0% 100%;
+        --foreground: 240 10% 3.9%;
+        --card: 0 0% 100%;
+        --card-foreground: 240 10% 3.9%;
+        --popover: 0 0% 100%;
+        --popover-foreground: 240 10% 3.9%;
+        --primary: 144 62% 44%;
+        --primary-foreground: 0 0% 100%;
+        --secondary: 144 20% 94%;
+        --secondary-foreground: 144 30% 20%;
+        --muted: 144 28% 85%;
+        --muted-foreground: 144 30% 20%;
+        --accent: 144 62% 44%;
+        --accent-foreground: 240 5.9% 10%;
+        --destructive: 0 84.2% 60.2%;
+        --destructive-foreground: 0 0% 98%;
+        --border: 144 28% 85%;
+        --input: 144 28% 85%;
+        --ring: 144 91.2% 39.8%;
+        --radius: 0.5rem;
+        --chart-1: 144 62% 44%;
+        --chart-2: 120 47% 34%;
+        --chart-3: 160 50% 45%;
+        --chart-4: 144 68% 70%;
+        --chart-5: 144 76% 60%;
+    }
+
+    :root[data-theme="green"].dark {
+        --sidebar-background: 144 20% 10%;
+        --sidebar-foreground: 240 4.8% 95.9%;
+        --sidebar-primary: 144 70.6% 35%;
+        --sidebar-primary-foreground: 0 0% 98%;
+        --sidebar-accent: 144 70.6% 35%;
+        --sidebar-accent-foreground: 240 4.8% 95.9%;
+        --sidebar-border: 144 25% 20%;
+        --sidebar-ring: 144 71.8% 29.2%;
+        --background: 144 10% 6%;
+        --foreground: 144 20% 85%;
+        --card: 144 10% 6%;
+        --card-foreground: 0 0% 95%;
+        --popover: 144 12% 9%;
+        --popover-foreground: 0 0% 95%;
+        --primary: 144 70.6% 35%;
+        --primary-foreground: 0 0% 98%;
+        --secondary: 144 15% 15%;
+        --secondary-foreground: 0 0% 98%;
+        --muted: 144 18% 14%;
+        --muted-foreground: 144 30% 80%;
+        --accent: 144 50% 35%;
+        --accent-foreground: 0 0% 98%;
+        --destructive: 0 62.8% 30.6%;
+        --destructive-foreground: 0 85.7% 97.3%;
+        --border: 144 15% 20%;
+        --input: 144 15% 20%;
+        --ring: 144 71.8% 29.2%;
+        --chart-1: 144 70.6% 35%;
+        --chart-2: 120 47% 30%;
+        --chart-3: 160 50% 35%;
+        --chart-4: 144 68% 25%;
+        --chart-5: 144 76% 20%;
+    }
+    .base_green {
+        @apply bg-background text-foreground ;
+    }
+}

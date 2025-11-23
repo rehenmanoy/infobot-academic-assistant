@@ -1,0 +1,191 @@
+import { useEffect, useState } from "react";
+import { ScrollArea } from "@/components/ui/scroll-area.jsx";
+import {
+    Sheet, SheetClose,
+    SheetContent,
+    SheetDescription,
+    SheetFooter,
+    SheetHeader,
+    SheetTitle,
+    SheetTrigger
+} from "@/components/ui/sheet.jsx";
+import { Button } from "@/components/ui/button.jsx";
+import { Input } from "@/components/ui/input.jsx";
+import JSZip from "jszip";
+import { API_BASE_URL } from "@/configs/config.jsx";
+
+export default function ManageSemester() {
+    const [semesterData, setSemesterData] = useState(
+        Array.from({ length: 8 }, () => [])
+    );
+    const [subjectTypes, setSubjectTypes] = useState([]);
+    const [teacherOptions, setTeacherOptions] = useState([]);
+
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const [teacherRes, typeRes] = await Promise.all([
+                    fetch(`${API_BASE_URL}/api/teachers-data`),
+                    fetch(`${API_BASE_URL}/api/subject-types`)
+                ]);
+
+                const teachers = await teacherRes.json();
+                const types = await typeRes.json();
+
+                // Check and validate that response is an array
+                setTeacherOptions(Array.isArray(teachers) ? teachers : []);
+                setSubjectTypes(Array.isArray(types) ? types : []);
+
+                // Optional: log API data
+                console.log("Teachers:", teachers);
+                console.log("Subject Types:", types);
+            } catch (error) {
+                console.error("Error fetching dropdown data:", error);
+                setTeacherOptions([]);
+                setSubjectTypes([]);
+            }
+        };
+
+        fetchData();
+    }, []);
+
+    const handleAddSubject = (semIndex) => {
+        const newSubject = { name: "", type: "", file: null, teacher: "" };
+        const updated = [...semesterData];
+        updated[semIndex].push(newSubject);
+        setSemesterData(updated);
+    };
+
+    const handleInputChange = (semIndex, subjectIndex, key, value) => {
+        const updated = [...semesterData];
+        updated[semIndex][subjectIndex][key] = value;
+        setSemesterData(updated);
+    };
+
+    const handleSubmit = async (semIndex) => {
+        const zip = new JSZip();
+        const subjectMap = {};
+
+        for (const subject of semesterData[semIndex]) {
+            if (subject.file && subject.name && subject.type && subject.teacher) {
+                zip.file(subject.file.name, subject.file);
+                subjectMap[subject.name] = {
+                    file: subject.file.name,
+                    type_id: subject.type,
+                    teacher_id: subject.teacher,
+                };
+            }
+        }
+
+        const zipBlob = await zip.generateAsync({ type: "blob" });
+
+        const formData = new FormData();
+        formData.append("semester", semIndex + 1);
+        formData.append("subjectMap", JSON.stringify(subjectMap));
+        formData.append("file", zipBlob, `semester_${semIndex + 1}.zip`);
+
+        await fetch(`${API_BASE_URL}/api/upload-semester`, {
+            method: "POST",
+            body: formData,
+        });
+
+        alert("Semester data submitted!");
+    };
+
+    return (
+        <div className="flex flex-col h-full w-full overflow-auto">
+            <h3 className="text-primary font-bold text-2xl">Manage Semester</h3>
+            <div className="w-full flex flex-col gap-2 mt-4">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 pt-4 justify-items-center">
+                    {semesterData.map((subjects, semIndex) => (
+                        <Sheet key={semIndex}>
+                            <SheetTrigger asChild>
+                                <Button
+                                    className="flex items-center h-[160px] w-[160px] rounded-3xl bg-primary text-primary-foreground justify-center border-2 border-dashed border-gray-400 p-6 hover:scale-105"
+                                    variant="outline"
+                                >
+                                    <span className="font-semibold">Semester {semIndex + 1}</span>
+                                </Button>
+                            </SheetTrigger>
+                            <SheetContent>
+                                <SheetHeader>
+                                    <SheetTitle>Semester {semIndex + 1}</SheetTitle>
+                                    <SheetDescription>Upload subject materials</SheetDescription>
+                                </SheetHeader>
+                                <ScrollArea className="flex flex-col h-[80vh] w-full border-2 border-muted/90 rounded-lg p-4 overflow-auto">
+                                    <div className="grid gap-4 py-4">
+                                        {subjects.map((subject, subjectIndex) => (
+                                            <div key={subjectIndex} className="border p-3 rounded-md space-y-2">
+                                                <Input
+                                                    placeholder="Subject Name"
+                                                    value={subject.name}
+                                                    onChange={(e) =>
+                                                        handleInputChange(semIndex, subjectIndex, "name", e.target.value)
+                                                    }
+                                                />
+                                                <select
+                                                    value={subject.type}
+                                                    onChange={(e) =>
+                                                        handleInputChange(semIndex, subjectIndex, "type", e.target.value)
+                                                    }
+                                                    className="w-full p-2 border rounded"
+                                                >
+                                                    <option value="">Select Subject Type</option>
+                                                    {Array.isArray(subjectTypes) &&
+                                                        subjectTypes.map((typeObj) => (
+                                                            <option key={typeObj.id} value={typeObj.id}>
+                                                                {typeObj.type}
+                                                            </option>
+                                                        ))}
+                                                </select>
+
+                                                <select
+                                                    value={subject.teacher}
+                                                    onChange={(e) =>
+                                                        handleInputChange(semIndex, subjectIndex, "teacher", e.target.value)
+                                                    }
+                                                    className="w-full p-2 border rounded"
+                                                >
+                                                    <option value="">Select Teacher</option>
+                                                    {Array.isArray(teacherOptions) &&
+                                                        teacherOptions.map((teacher) => (
+                                                            <option key={teacher.id} value={teacher.id}>
+                                                                {teacher.name}
+                                                            </option>
+                                                        ))}
+                                                </select>
+
+                                                <Input
+                                                    type="file"
+                                                    accept="application/pdf"
+                                                    onChange={(e) =>
+                                                        handleInputChange(semIndex, subjectIndex, "file", e.target.files[0])
+                                                    }
+                                                />
+                                            </div>
+                                        ))}
+
+                                        <Button
+                                            variant="secondary"
+                                            onClick={() => handleAddSubject(semIndex)}
+                                        >
+                                            + Add Subject
+                                        </Button>
+                                    </div>
+
+                                    <SheetFooter>
+                                        <SheetClose asChild>
+                                            <Button onClick={() => handleSubmit(semIndex)}>
+                                                Submit Semester
+                                            </Button>
+                                        </SheetClose>
+                                    </SheetFooter>
+                                </ScrollArea>
+                            </SheetContent>
+                        </Sheet>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+}
