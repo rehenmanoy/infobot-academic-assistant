@@ -1,0 +1,17 @@
+## Prompt 1 => Prompt to extract syllabus from pdf
+
+    <user>
+        Extract syllabus from the given pdf in the below formatted json strutures
+        <JSON>
+            {
+                Subject : "hint: Extract Subject name from the pdf"
+                syllabus:[
+                {
+                module: "hint: Extract module heading",
+                Subject : "hint: Make a headline for the module based on the topics and subtopics",
+                topic:"hint: Extract topic name from the syllabus and store it as a list"
+                },.......
+                ]
+            }
+        </JSON>
+    </user>
