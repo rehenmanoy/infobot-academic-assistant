@@ -1,264 +1,176 @@
-import {useEffect, useState} from "react";
-import {Button} from "@/components/ui/button";
-import {
-    Check,
-    ChevronsUpDown,
-    SendIcon,
-    PencilIcon,
-    Volume2
-} from "lucide-react";
-import axios from "axios";
-import {Label} from "@/components/ui/label.jsx";
-import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger
-} from "@/components/ui/popover.jsx";
-import {
-    Command,
-    CommandEmpty,
-    CommandGroup,
-    CommandInput,
-    CommandItem,
-    CommandList
-} from "@/components/ui/command.jsx";
-import {cn} from "@/lib/utils.js";
-import {ScrollArea} from "@/components/ui/scroll-area.jsx";
-import {Textarea} from "@/components/ui/textarea.jsx";
+import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
-import { useRef } from "react";
+import { Copy, RotateCcw, SendIcon, Volume2, VolumeX } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea.jsx";
+import { api, errorMessage } from "@/lib/api.js";
+import { toast } from "@/hooks/use-toast.jsx";
+import { cn } from "@/lib/utils.js";
 
+// Only the most recent turns are sent, matching the server's limit of 20 messages.
+const HISTORY_LIMIT = 19;
+const MAX_MESSAGE_LENGTH = 4000;
 
-export default function Chat_with_me() {
-    const [userInput, setUserInput] = useState("");
-    const [chatHistory, setChatHistory] = useState([]);
-    const [editingIndex, setEditingIndex] = useState(null);
-    const [isLoading, setIsLoading] = useState(false);
-    const [speakingIndex, setSpeakingIndex] = useState(null);
+const SUGGESTIONS = ["What classes do I have today?", "Summarise my week in a table", "How should I prepare for my lab exams?"];
 
+function TypingDots() {
+    return (
+        <div className="flex gap-1 py-1" aria-label="InfoBot is typing">
+            {[0, 1, 2].map((i) => (
+                <span key={i} className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground" style={{ animationDelay: `${i * 0.15}s` }} />
+            ))}
+        </div>
+    );
+}
+
+export default function ChatWithMe() {
+    const [messages, setMessages] = useState([]);
+    const [input, setInput] = useState("");
+    const [sending, setSending] = useState(false);
+    const [speaking, setSpeaking] = useState(null);
+    const bottom = useRef(null);
     const synth = typeof window !== "undefined" ? window.speechSynthesis : null;
 
-    const frameworks = [
-        {value: "next.js", label: "Next.js"},
-        {value: "sveltekit", label: "SvelteKit"},
-        {value: "nuxt.js", label: "Nuxt.js"},
-        {value: "remix", label: "Remix"},
-        {value: "astro", label: "Astro"}
-    ];
-    const bottomRef = useRef(null);
     useEffect(() => {
-        bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [chatHistory]);
+        bottom.current?.scrollIntoView({ behavior: "smooth" });
+    }, [messages, sending]);
 
-    useEffect(() => {
-        setChatHistory([
-            {prompt: null, response: "👋 Welcome! How can I assist you today?"}
-        ]);
-    }, []);
+    useEffect(() => () => synth?.cancel(), [synth]);
 
-    const [open, setOpen] = useState(false);
-    const [value, setValue] = useState("");
-
-    const fetchResponse = async () => {
-        if (!userInput.trim()) return;
-
-        const prompt = userInput;
-        setUserInput("");
-
-        if (editingIndex !== null) {
-            try {
-                setIsLoading(true);
-                const response = await axios.post("http://localhost:8000/api/chat", {prompt});
-                const aiResponse = response.data.response;
-
-                const updatedChat = [...chatHistory];
-                updatedChat[editingIndex] = {prompt, response: aiResponse};
-                setChatHistory(updatedChat);
-                setEditingIndex(null);
-            } catch (error) {
-                console.error("Error fetching response:", error);
-            } finally {
-                setIsLoading(false);
-            }
-            return;
-        }
-
-        setChatHistory(prev => [...prev, {prompt, response: "Typing..."}]);
-        setIsLoading(true);
-
+    const send = async (text = input) => {
+        const content = text.trim();
+        if (!content || sending) return;
+        const history = [...messages, { role: "user", content }];
+        setMessages(history);
+        setInput("");
+        setSending(true);
         try {
-            const response = await axios.post("http://localhost:8000/api/chat", {prompt});
-            const aiResponse = response.data.response;
-
-            setChatHistory(prev => {
-                const updated = [...prev];
-                updated[updated.length - 1].response = aiResponse;
-                return updated;
-            });
+            const response = await api.post("/chat", { messages: history.slice(-HISTORY_LIMIT) });
+            setMessages((current) => [...current, { role: "assistant", content: response.data.reply }]);
         } catch (error) {
-            console.error("Error fetching response:", error);
-            setChatHistory(prev => {
-                const updated = [...prev];
-                updated[updated.length - 1].response = "Sorry, something went wrong.";
-                return updated;
-            });
+            setMessages((current) => current.slice(0, -1));
+            setInput(content);
+            toast({ title: "InfoBot could not answer", description: errorMessage(error), variant: "destructive" });
         } finally {
-            setIsLoading(false);
+            setSending(false);
         }
     };
 
     const toggleSpeak = (text, index) => {
         if (!synth) return;
-        if (speakingIndex === index) {
-            synth.cancel();
-            setSpeakingIndex(null);
-        } else {
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = "en-US";
-            synth.cancel(); // cancel any ongoing speech
-            synth.speak(utterance);
-            setSpeakingIndex(index);
+        synth.cancel();
+        if (speaking === index) {
+            setSpeaking(null);
+            return;
+        }
+        const utterance = new SpeechSynthesisUtterance(text.replace(/[#*_`|>-]/g, " "));
+        utterance.onend = () => setSpeaking(null);
+        synth.speak(utterance);
+        setSpeaking(index);
+    };
 
-            utterance.onend = () => {
-                setSpeakingIndex(null);
-            };
+    const copy = async (text) => {
+        try {
+            await navigator.clipboard.writeText(text);
+            toast({ title: "Copied" });
+        } catch {
+            toast({ title: "Could not copy", variant: "destructive" });
         }
     };
-    const TypingLoader = () => (
-        <div className="flex space-x-1">
-            <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-            <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-            <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"></span>
-        </div>
-    );
-
 
     return (
-        <div className="w-full h-full flex flex-col items-center justify-center p-4 gap-4">
+        <div className="flex h-[calc(100vh-7rem)] flex-col rounded-lg border bg-background">
+            <div className="flex items-center justify-between border-b px-4 py-2">
+                <p className="text-sm text-muted-foreground">InfoBot knows your subjects and timetable. Answers can be wrong; check important details.</p>
+                {messages.length > 0 && (
+                    <Button variant="ghost" size="sm" onClick={() => setMessages([])} disabled={sending}>
+                        <RotateCcw className="h-4 w-4" /> New chat
+                    </Button>
+                )}
+            </div>
 
-
-            <div className="w-full h-full border-2 bg-primary-background rounded-lg shadow-primary flex flex-col p-2">
-                <ScrollArea
-                    className="flex flex-col h-[70vh] w-full border-2 border-muted/90 rounded-lg p-4 overflow-auto">
-                    <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                        {chatHistory.map((chat, index) => (
-                            <div key={index} className="space-y-2">
-                                {chat.prompt && (
-                                    <div className="flex justify-end">
-                                        <div className="flex items-start gap-2 max-w-lg">
-                                            <div className="bg-blue-600 text-white px-4 py-2 rounded-lg">
-                                                {chat.prompt}
-                                            </div>
-                                            <Button
-                                                size="icon"
-                                                variant="ghost"
-                                                onClick={() => {
-                                                    setUserInput(chat.prompt);
-                                                    setEditingIndex(index);
-                                                }}
-                                            >
-                                                <PencilIcon className="w-4 h-4"/>
-                                            </Button>
+            <div className="flex-1 overflow-y-auto p-4">
+                {messages.length === 0 ? (
+                    <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
+                        <p className="text-lg font-semibold">Hi! How can I help you today?</p>
+                        <div className="flex flex-wrap justify-center gap-2">
+                            {SUGGESTIONS.map((s) => (
+                                <Button key={s} variant="outline" size="sm" onClick={() => send(s)}>
+                                    {s}
+                                </Button>
+                            ))}
+                        </div>
+                    </div>
+                ) : (
+                    <div className="mx-auto flex max-w-3xl flex-col gap-4">
+                        {messages.map((message, index) => (
+                            <div key={index} className={cn("flex", message.role === "user" ? "justify-end" : "justify-start")}>
+                                {message.role === "user" ? (
+                                    <div className="max-w-[85%] whitespace-pre-wrap rounded-lg bg-primary px-4 py-2 text-primary-foreground">{message.content}</div>
+                                ) : (
+                                    <div className="group max-w-[85%] rounded-lg bg-muted px-4 py-3">
+                                        {/* react-markdown never renders raw HTML, so replies cannot inject markup. */}
+                                        <div className="prose prose-sm max-w-none dark:prose-invert">
+                                            <ReactMarkdown>{message.content}</ReactMarkdown>
                                         </div>
-                                    </div>
-                                )}
-                                {chat.response && (
-                                    <div className="flex justify-start">
-                                        <div
-                                            className="bg-muted px-4 py-3 min-w-[100px] p-2 rounded-lg shadow-md relative max-w-lg prose prose-invert">
-                                            {chat.response === "Typing..." ? (
-                                                <TypingLoader/>
-                                            ) : (
-                                                <ReactMarkdown
-                                                    components={{
-                                                        code({node, inline, className, children, ...props}) {
-                                                            const match = /language-(\w+)/.exec(className || "");
-                                                            const language = match?.[1] || "code";
-
-                                                            const copyToClipboard = () => {
-                                                                navigator.clipboard.writeText(children);
-                                                            };
-
-                                                            return inline ? (
-                                                                <code
-                                                                    className="bg-muted px-1 py-0.5 rounded text-sm font-mono">
-                                                                    {children}
-                                                                </code>
-                                                            ) : (
-                                                                <div
-                                                                    className="relative bg-zinc-900 text-white text-sm rounded-lg mb-4">
-                                                                    <div
-                                                                        className="flex justify-between items-center px-4 py-2 border-b border-zinc-800">
-                                        <span className="capitalize text-xs text-zinc-400 font-medium">
-                                  {language}
-                                </span>
-                                                                        <button
-                                                                            onClick={copyToClipboard}
-                                                                            className="text-xs text-blue-400 hover:underline"
-                                                                        >
-                                                                            Copy
-                                                                        </button>
-                                                                    </div>
-                                                                    <pre className="overflow-auto p-4">
-                                <code className={`language-${language}`} {...props}>
-                                  {children}
-                                </code>
-                                </pre>
-                                                                </div>
-                                                            );
-                                                        }
-                                                    }}
-                                                >
-                                                    {chat.response}
-                                                </ReactMarkdown>)}
-                                            <Button
-                                                size="icon"
-                                                variant="ghost"
-                                                className="absolute -right-10 top-2"
-                                                onClick={() => toggleSpeak(chat.response, index)}
-                                            >
-                                                <Volume2
-                                                    className={`w-5 h-5 ${
-                                                        speakingIndex === index ? "text-blue-600" : "text-muted-foreground"
-                                                    }`}
-                                                />
+                                        <div className="mt-1 flex gap-1 opacity-60 group-hover:opacity-100">
+                                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => copy(message.content)} aria-label="Copy reply">
+                                                <Copy className="h-3.5 w-3.5" />
                                             </Button>
+                                            {synth && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-7 w-7"
+                                                    onClick={() => toggleSpeak(message.content, index)}
+                                                    aria-label={speaking === index ? "Stop reading" : "Read aloud"}
+                                                >
+                                                    {speaking === index ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}
+                                                </Button>
+                                            )}
                                         </div>
                                     </div>
                                 )}
                             </div>
                         ))}
-                        <div ref={bottomRef}/>
-
+                        {sending && (
+                            <div className="flex justify-start">
+                                <div className="rounded-lg bg-muted px-4 py-2">
+                                    <TypingDots />
+                                </div>
+                            </div>
+                        )}
+                        <div ref={bottom} />
                     </div>
-                </ScrollArea>
-
-                <div className="p-4 flex items-center">
-                    <Textarea
-                        value={userInput}
-                        onChange={(e) => setUserInput(e.target.value)}
-                        onKeyDown={(e) => {
-                            if (e.key === "Enter" && !e.shiftKey) {
-                                e.preventDefault();
-                                if (userInput.trim()) {
-                                    fetchResponse();
-                                }
-                            }
-                        }}
-                        rows={3}
-                        className="flex-1 resize-none p-2 border border-primary-background rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="Type your message..."
-                    />
-
-                    <Button
-                        className="ml-2 w-[60px] h-[60px] p-0 flex items-center justify-center bg-primary text-white rounded-md hover:bg-blue-600"
-                        onClick={fetchResponse}
-                        disabled={isLoading}
-                    >
-                        <SendIcon className="w-6 h-6"/>
-                    </Button>
-                </div>
+                )}
             </div>
+
+            <form
+                className="flex items-end gap-2 border-t p-3"
+                onSubmit={(event) => {
+                    event.preventDefault();
+                    send();
+                }}
+            >
+                <Textarea
+                    value={input}
+                    maxLength={MAX_MESSAGE_LENGTH}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            send();
+                        }
+                    }}
+                    rows={2}
+                    className="flex-1 resize-none"
+                    placeholder="Ask InfoBot... (Shift+Enter for a new line)"
+                    aria-label="Message"
+                />
+                <Button type="submit" size="icon" className="h-12 w-12" disabled={sending || !input.trim()} aria-label="Send">
+                    <SendIcon className="h-5 w-5" />
+                </Button>
+            </form>
         </div>
     );
 }

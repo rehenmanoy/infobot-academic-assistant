@@ -5,8 +5,8 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  :root.light_blue {
+/* Color themes. Kept outside @layer so Tailwind never drops them: the class names are built at runtime. */
+  :root, :root.light_blue {
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 222.2 84% 4.9%;
     --sidebar-primary: 221.2 83.2% 53.3%;
@@ -581,9 +581,7 @@
     --chart-5: 340 75% 55%;
   }
 
-}
-
-  @layer base {
+@layer base {
   * {
     @apply border-border;
   }

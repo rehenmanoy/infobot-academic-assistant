@@ -1,19 +1,25 @@
-// Project Smart Obit for Malayala Manorama Co LTD
-// Developed By Donis Abraham | Billan Jacob John | Afueth Thomas
-// Start Date : 2024-10-07
+import { Navigate, useLocation } from "react-router-dom";
+import { useAuth } from "@/auth/AuthContext.jsx";
+import LazyLoader from "@/utils/LazyLoader/LazyLoader.jsx";
 
-import {Navigate} from 'react-router-dom';
+export default function ProtectedRoute({ children, roles }) {
+    const { user, loading, loggedOut } = useAuth();
+    const location = useLocation();
 
-const isAuthenticated = () => {
-    return !!localStorage.getItem('access_token');
-};
-
-// eslint-disable-next-line react/prop-types
-const ProtectedRoute = ({children}) => {
-    if (!isAuthenticated()) {
-        return <Navigate to="/"/>;
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-screen">
+                <LazyLoader />
+            </div>
+        );
+    }
+    if (!user) {
+        // Remember the page only when the session expired, not after a deliberate logout.
+        return <Navigate to="/" replace state={loggedOut ? undefined : { from: location.pathname }} />;
+    }
+    if (roles && !roles.includes(user.role)) {
+        return <Navigate to="/dashboard" replace />;
     }
     return children;
-};
+}
 
-export default ProtectedRoute;
