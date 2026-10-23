@@ -1,209 +1,122 @@
-import { useState, useEffect } from "react";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Button } from "@/components/ui/button";
+import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
+import { Moon, Palette, RotateCcw, Sun } from "lucide-react";
 import { AppSidebar } from "@/components/sidebar";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { Sun, Moon, RefreshCcw,Settings } from "lucide-react";
-import user_theme_preference from "@/api/user_preference/set_preference.jsx";
-import { useToast } from "@/hooks/use-toast.jsx"
-import get_user_theme_preference from "@/api/user_preference/get_preference.jsx";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { toast } from "@/hooks/use-toast.jsx";
+import { useAuth } from "@/auth/AuthContext.jsx";
+import { api, errorMessage } from "@/lib/api.js";
+import { NAVIGATION } from "@/lib/navigation.js";
+import { applyTheme, DEFAULT_THEME, normalizeTheme, THEME_COLORS } from "@/lib/theme.js";
 
-// eslint-disable-next-line react/prop-types
-export default function DashboardIndex({children}) {
+const toggleItemClass =
+    "data-[state=on]:border-primary data-[state=on]:bg-transparent data-[state=off]:border-muted " +
+    "data-[state=off]:text-muted-foreground border-2 rounded-md flex flex-row justify-start items-center gap-2 p-2";
 
-    useEffect(() => {
-        const fetchThemePreference = async () => {
-            try {
-                const pref = await get_user_theme_preference();
-                if (String(pref.theme).toLowerCase() === "dark") {
-                    localStorage.setItem("dark_theme", "true");
-                } else {
-                    localStorage.setItem("dark_theme", "false");
-                }
-                if (pref.color) {
-                    localStorage.setItem("color", pref.color);
-                } else {
-                    localStorage.removeItem("color");
-                }
-            } catch (error) {
-                console.error("Error fetching theme preference:", error);
-            }
-        };
-
-        fetchThemePreference();
-    }, []);
-
-    const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem("dark_theme") === 'true');
-    const [color, setColor] = useState(() => localStorage.getItem("color") || 'defaultColor');
-    const toggleItems = [
-        { value: "zinc", color: "bg-zinc-600", label: "Zinc" },
-        { value: "red", color: "bg-red-700", label: "Red" },
-        { value: "rose", color: "bg-rose-600", label: "Rose" },
-        { value: "orange", color: "bg-orange-600", label: "Orange" },
-        { value: "green", color: "bg-green-600", label: "Green" },
-        { value: "blue", color: "bg-blue-600", label: "Blue" },
-        { value: "yellow", color: "bg-yellow-600", label: "Yellow" },
-        { value: "violet", color: "bg-violet-600", label: "Violet" },
-    ];
-    const { toast } = useToast()
-    useEffect(() => {
-        const newThemeColor = `${isDarkMode ? 'dark' : 'light'}_${color}`;
-
-        const root = document.documentElement;
-        root.classList.forEach(className => {
-            if (className.startsWith('light_') || className.startsWith('dark_')) {
-                root.classList.remove(className);
-            }
-        });
-        root.classList.add(newThemeColor);
-    }, [isDarkMode, color]);
-
-    const reloadConfig = () =>{
-        localStorage.setItem("dark_theme", false);
-        localStorage.setItem("color", "green");
-        window.location.reload();
+function pageTitle(pathname) {
+    for (const group of NAVIGATION) {
+        const item = group.items.find((entry) => entry.url === pathname);
+        if (item) return item.title;
     }
+    return "";
+}
 
-    const handleColorChange = (newValue) => {
-        setColor(newValue);
-    };
+function ThemeCustomizer() {
+    const { user, setUser } = useAuth();
+    const [draft, setDraft] = useState(() => normalizeTheme(user?.preferences));
+    const [saving, setSaving] = useState(false);
 
-    const saveTheme = async () => {
-        localStorage.setItem("dark_theme", isDarkMode.toString());
-        localStorage.setItem("color", color);
+    // Preview while choosing; the saved theme comes back when the popover closes without saving.
+    useEffect(() => applyTheme(draft), [draft]);
 
-        const themeMode = isDarkMode ? "dark" : "light";
-
+    const save = async () => {
+        setSaving(true);
         try {
-            const response = await user_theme_preference(themeMode, color);
-            console.log(response.status);
-            if (response && response.status === "success") {
-                toast({
-                    title: "Theme successfully updated!",
-                    description: "Your theme preference has been saved.",
-                    status: "success",
-                });
-
-                setTimeout(() => {
-                    window.location.reload();
-                }, 800);
-            } else {
-                console.error("Unexpected response while saving theme:", response);
-                toast({
-                    title: "Failed to update theme",
-                    description: "There was an issue saving your theme preferences to the database. Your local preferences have been updated.",
-                    status: "error",
-                });
-            }
+            const response = await api.put("/auth/me/preferences", draft);
+            setUser(response.data);
+            toast({ title: "Theme saved", description: "Your theme will follow you on every device." });
         } catch (error) {
-            console.error("Error saving theme preference:", error);
-
-            toast({
-                title: "Error saving theme preference",
-                description: "We encountered a problem while updating your preferences. Please try again later.",
-                status: "error",
-            });
+            toast({ title: "Could not save theme", description: errorMessage(error), variant: "destructive" });
+        } finally {
+            setSaving(false);
         }
     };
 
+    return (
+        <Popover onOpenChange={(open) => !open && setDraft(normalizeTheme(user?.preferences))}>
+            <PopoverTrigger asChild>
+                <Button variant="outline" size="icon" aria-label="Theme settings">
+                    <Palette className="h-4 w-4" />
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="flex flex-col gap-4 w-[330px]">
+                <div className="flex flex-row justify-between items-center">
+                    <span className="font-bold">Theme</span>
+                    <Button variant="ghost" size="icon" aria-label="Reset theme" onClick={() => setDraft(DEFAULT_THEME)}>
+                        <RotateCcw className="h-4 w-4" />
+                    </Button>
+                </div>
+                <Separator />
+                <span className="text-sm text-muted-foreground">Color</span>
+                <ToggleGroup
+                    type="single"
+                    value={draft.color}
+                    className="grid grid-cols-3 gap-2"
+                    onValueChange={(color) => color && setDraft((d) => ({ ...d, color }))}
+                >
+                    {THEME_COLORS.map((item) => (
+                        <ToggleGroupItem key={item.value} value={item.value} className={toggleItemClass}>
+                            <span className={`w-4 h-4 rounded-full ${item.swatch}`} />
+                            <span>{item.label}</span>
+                        </ToggleGroupItem>
+                    ))}
+                </ToggleGroup>
+                <span className="text-sm text-muted-foreground">Mode</span>
+                <ToggleGroup
+                    type="single"
+                    value={draft.theme}
+                    className="flex gap-4"
+                    onValueChange={(theme) => theme && setDraft((d) => ({ ...d, theme }))}
+                >
+                    <ToggleGroupItem value="light" className={toggleItemClass}>
+                        <Sun size={18} /> Light
+                    </ToggleGroupItem>
+                    <ToggleGroupItem value="dark" className={toggleItemClass}>
+                        <Moon size={18} /> Dark
+                    </ToggleGroupItem>
+                </ToggleGroup>
+                <Separator />
+                <Button onClick={save} disabled={saving}>
+                    {saving ? "Saving..." : "Save theme"}
+                </Button>
+            </PopoverContent>
+        </Popover>
+    );
+}
 
+export default function DashboardLayout({ children }) {
+    const { user } = useAuth();
+    const { pathname } = useLocation();
 
+    useEffect(() => applyTheme(user?.preferences), [user?.preferences]);
 
     return (
         <SidebarProvider>
             <AppSidebar />
-            <SidebarInset className="p-1">
-                <header className="flex h-16 shrink-0 items-center justify-between px-4 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
-                    <div className="flex items-center gap-2">
+            <SidebarInset className="p-1 min-w-0">
+                <header className="flex h-14 shrink-0 items-center justify-between gap-2 px-4">
+                    <div className="flex items-center gap-2 min-w-0">
                         <SidebarTrigger className="-ml-1" />
                         <Separator orientation="vertical" className="mr-2 h-4" />
-
+                        <h1 className="font-semibold truncate">{pageTitle(pathname)}</h1>
                     </div>
-                    <Popover>
-                        <PopoverTrigger className="w-[30px] h-[30px]  hover:bg-primary hover:text-white bg-muted text-muted-foreground border border-border flex justify-center items-center rounded-full">
-                            <Settings className="w-full h-full"/>
-                        </PopoverTrigger>
-                        <PopoverContent className="flex flex-col gap-4 w-[330px]">
-                            <div className="flex flex-row justify-between">
-                                <span className="font-bold">Theme Customizer</span>
-                                <TooltipProvider>
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <span onClick={reloadConfig}>
-                                                <RefreshCcw className="hover:bg-gray-500 hover:text-white hover:cursor-pointer p-1 rounded-[50%]" />
-                                            </span>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                            <span>Refresh</span>
-                                        </TooltipContent>
-                                    </Tooltip>
-                                </TooltipProvider>
-                            </div>
-                            <Separator />
-                            <div className="flex flex-col gap-1">
-                                <span>Color</span>
-                                <Separator />
-                            </div>
-                            <ToggleGroup type="single" value = {color} className="grid grid-cols-3 gap-2" onValueChange={handleColorChange}>
-                                {toggleItems.map((item) => (
-                                    <ToggleGroupItem
-                                        key={item.value}
-                                        value={item.value}
-                                        onClick={() => setColor(item.value)}
-                                        className={`data-[state=on]:border-primary data-[state=on]:bg-transparent 
-                                    data-[state=off]:border-muted data-[state=off]:text-muted-foreground 
-                                    border-2 rounded-md flex flex-row justify-start items-center gap-2 
-                                    p-2 bg-transparent`}
-                                    >
-                                        <div className={`w-[20px] h-[20px] rounded-[50%] ${item.color}`}></div>
-                                        <span>{item.label}</span>
-                                    </ToggleGroupItem>
-                                ))}
-                            </ToggleGroup>
-                            <div className="flex flex-col gap-1">
-                                <span>Mode</span>
-                                <Separator />
-                            </div>
-                            <div className="flex items-center justify-center">
-                                <ToggleGroup
-                                    type="single"
-                                    value={isDarkMode ? "dark" : "light"}
-                                    onValueChange={(value) => setIsDarkMode(value === "dark")}
-                                    className="flex gap-4"
-                                >
-                                    <ToggleGroupItem value="dark" className="data-[state=on]:border-primary data-[state=on]:bg-transparent
-                                    data-[state=off]:border-muted data-[state=off]:text-muted-foreground
-                                    border-2 rounded-md flex flex-row justify-start items-center gap-2
-                                    p-2 bg-transparent">
-                                        <Moon size={18} />
-                                        <span>Dark Mode</span>
-                                    </ToggleGroupItem>
-                                    <ToggleGroupItem value="light" className="data-[state=on]:border-primary data-[state=on]:bg-transparent
-                                    data-[state=off]:border-muted data-[state=off]:text-muted-foreground
-                                    border-2 rounded-md flex flex-row justify-start items-center gap-2
-                                    p-2 bg-transparent">
-                                        <Sun size={18} />
-                                        <span>Light Mode</span>
-                                    </ToggleGroupItem>
-                                </ToggleGroup>
-                            </div>
-                            <Separator />
-                            <div className="flex flex-row justify-between gap-1">
-                                <span>Save your preference:</span>
-                                <Button
-                                    onClick={saveTheme}
-                                >Save
-                                </Button>
-                            </div>
-                        </PopoverContent>
-                    </Popover>
+                    <ThemeCustomizer />
                 </header>
-                <div className="flex flex-1 flex-col gap-2 p-4 bg-muted/50 rounded-lg">
-                    {children}
-                </div>
+                <main className="flex flex-1 flex-col gap-2 p-2 sm:p-4 bg-muted/50 rounded-lg min-w-0">{children}</main>
             </SidebarInset>
         </SidebarProvider>
     );

@@ -1,125 +1,83 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { useLocalStorage } from "../hooks/useLocalStorage.jsx";
-import { ToastContainer, toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
-import login from "../api/login/login.jsx";
-import { Input } from "@/components/ui/input.jsx";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
+import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button.jsx";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.jsx";
-import { Label } from "@/components/ui/label.jsx";
-import logo from "@/assets/images/logo.png"
-import loginbg from "../assets/images/login-bg.svg"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card.jsx";
+import { Input } from "@/components/ui/input.jsx";
+import { Field, FormError } from "@/components/form.jsx";
+import { useAuth } from "@/auth/AuthContext.jsx";
+import { errorMessage } from "@/lib/api.js";
+import logo from "@/assets/images/logo.png";
+import loginbg from "../assets/images/login-bg.svg";
 
-
-const Login = () => {
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
+export default function LoginPage() {
+    const { user, login } = useAuth();
     const navigate = useNavigate();
-    const { setToken } = useLocalStorage();
+    const location = useLocation();
+    const [username, setUsername] = useState("");
+    const [password, setPassword] = useState("");
+    const [error, setError] = useState("");
+    const [submitting, setSubmitting] = useState(false);
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
+    const destination = location.state?.from && location.state.from !== "/" ? location.state.from : "/dashboard";
+    if (user) return <Navigate to={destination} replace />;
 
+    const handleSubmit = async (event) => {
+        event.preventDefault();
+        setError("");
+        setSubmitting(true);
         try {
-            if (!email.trim()) {
-                toast.error("Email cannot be empty!");
-                return;
-            }
-            if (!password.trim()) {
-                toast.error("Password cannot be empty!");
-                return;
-            }
-
-            const response = await login(email, password);
-            localStorage.setItem("permissions", JSON.stringify(response.permission))
-
-
-            if (response?.access_token) {
-                toast.success("Hi, welcome to Infobot!");
-                setToken(response.access_token);
-
-                setTimeout(() => {
-                    navigate("/dashboard");
-                }, 1500);
-            } else {
-                toast.error("Invalid login credentials!");
-            }
-        } catch (error) {
-            console.error("Login error:", error);
-
-            if (error.message === "Network Error") {
-                toast.error("Network error. Please check your connection and try again.");
-                setTimeout(() => navigate("/Error"), 2000);
-            } else {
-                toast.error("An error occurred while logging in. Please try again later.");
-            }
-        }
-    };
-
-    const handleEnterKey = (e) => {
-        if (e.key === 'Enter' && email && password) {
-            handleSubmit(e);
+            await login(username.trim(), password);
+            navigate(destination, { replace: true });
+        } catch (err) {
+            setError(errorMessage(err, "Could not sign in. Please try again."));
+        } finally {
+            setSubmitting(false);
         }
     };
 
     return (
-        <div className="w-screen h-screen flex flex-row bg-black">
-            <img className="w-2/5 h-full object-cover" src={loginbg} alt="Login Background"/>
-            <div className="w-[60vw] h-full  flex items-center justify-center">
-
-                <Card className="w-[400px] overflow-hidden items-center flex flex-col">
-                    <CardHeader className="flex items-center justify-center text-white">
-                        <CardTitle className="text-2xl text-white">Welcome to InfoBot</CardTitle>
-                        <img className="w-[80px] h-[80px]" src={logo}/>
+        <div className="flex min-h-screen w-full bg-zinc-950">
+            <img className="hidden h-screen w-2/5 object-cover lg:block" src={loginbg} alt="" />
+            <div className="flex flex-1 items-center justify-center p-4">
+                <Card className="w-full max-w-sm">
+                    <CardHeader className="items-center text-center">
+                        <img className="h-16 w-16" src={logo} alt="InfoBot logo" />
+                        <CardTitle className="text-2xl">Welcome to InfoBot</CardTitle>
+                        <CardDescription>Sign in with the account your department gave you.</CardDescription>
                     </CardHeader>
-                    <CardContent className="min-w-[300px]">
-                        <form onSubmit={handleSubmit}>
-                            <div className="flex flex-col gap-6">
-                                <div className="grid gap-2">
-                                    <Label className="text-white" htmlFor="email">Email</Label>
-                                    <Input
-                                        className="w-full rounded-xl text-white border-2 border-white"
-                                        id="email"
-                                        type="email"
-                                        placeholder="username"
-                                        required
-                                        value={email}
-                                        onChange={(e) => setEmail(e.target.value)}
-                                        onKeyDown={handleEnterKey}
-                                    />
-                                </div>
-                                <div className="grid gap-2">
-                                    <Label className="text-white" htmlFor="password">Password</Label>
-                                    <Input
-                                        id="password"
-                                        type="password"
-                                        required
-                                        value={password}
-                                        placeholder="password"
-                                        className="w-full text-white rounded-xl border-2 border-white"
-                                        onChange={(e) => setPassword(e.target.value)}
-                                        onKeyDown={handleEnterKey}
-                                    />
-                                </div>
-                                <div className="flex w-full items-center justify-center">
-                                    <Button type="submit"
-                                            className="w-[100px] text-white hover:bg-cyan-950 hover:scale-105 bg-cyan-950 rounded-xl">
-                                        Login
-                                    </Button>
-                                </div>
-                            </div>
-                            <div className="mt-4 text-center text-sm">
-                                Don&#39;t have an account?{" "}
-                                <a href="#" className="underline underline-offset-4">Sign up</a>
-                            </div>
+                    <CardContent>
+                        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+                            <Field label="Username" htmlFor="username">
+                                <Input
+                                    id="username"
+                                    autoComplete="username"
+                                    autoFocus
+                                    required
+                                    value={username}
+                                    onChange={(e) => setUsername(e.target.value)}
+                                />
+                            </Field>
+                            <Field label="Password" htmlFor="password">
+                                <Input
+                                    id="password"
+                                    type="password"
+                                    autoComplete="current-password"
+                                    required
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                />
+                            </Field>
+                            <FormError message={error} />
+                            <Button type="submit" disabled={submitting} className="w-full">
+                                {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+                                Sign in
+                            </Button>
+                            <p className="text-center text-xs text-muted-foreground">Forgot your password? Ask your department administrator to reset it.</p>
                         </form>
                     </CardContent>
                 </Card>
-                <ToastContainer/>
             </div>
         </div>
     );
-};
-
-export default Login;
+}

@@ -16,8 +16,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { useDispatch, useSelector } from "react-redux";
-import {setSidebarState} from "@/redux_context/sidebarSlice.jsx";
 
 
 const SIDEBAR_COOKIE_NAME = "sidebar:state"
@@ -220,14 +218,7 @@ const Sidebar = React.forwardRef((
 Sidebar.displayName = "Sidebar"
 
 const SidebarTrigger = React.forwardRef(({ className, onClick, ...props }, ref) => {
-    const { toggleSidebar } = useSidebar()
-    const dispatch = useDispatch();
-    const isCollapsed = useSelector((state) => state.sidebar.isCollapsed);
-    const handleToggle = (event) => {
-        if (onClick) onClick(event);
-        dispatch(setSidebarState(!isCollapsed));
-        toggleSidebar();
-    };
+  const { toggleSidebar } = useSidebar()
 
   return (
     (<Button
@@ -238,7 +229,7 @@ const SidebarTrigger = React.forwardRef(({ className, onClick, ...props }, ref) 
       className={cn("h-7 w-7", className)}
       onClick={(event) => {
         onClick?.(event)
-          handleToggle()
+        toggleSidebar()
       }}
       {...props}>
       <PanelLeft />
@@ -250,17 +241,6 @@ SidebarTrigger.displayName = "SidebarTrigger"
 
 const SidebarRail = React.forwardRef(({ className, ...props }, ref) => {
   const { toggleSidebar } = useSidebar()
-    const dispatch = useDispatch();
-    const isCollapsed = useSelector((state) => state.sidebar.isCollapsed);
-    const handleToggle = (event) => {
-        event.preventDefault();
-        if (isCollapsed) {
-            dispatch(setSidebarState(false));
-        } else {
-            dispatch(setSidebarState(true));
-        }
-        toggleSidebar();
-    };
 
   return (
     (<button
@@ -268,7 +248,7 @@ const SidebarRail = React.forwardRef(({ className, ...props }, ref) => {
       data-sidebar="rail"
       aria-label="Toggle Sidebar"
       tabIndex={-1}
-      onClick={handleToggle}
+      onClick={toggleSidebar}
       title="Toggle Sidebar"
       className={cn(
         "absolute inset-y-0 z-20 hidden w-4 -translate-x-1/2 transition-all ease-linear after:absolute after:inset-y-0 after:left-1/2 after:w-[2px] hover:after:bg-sidebar-border group-data-[side=left]:-right-4 group-data-[side=right]:left-0 sm:flex",

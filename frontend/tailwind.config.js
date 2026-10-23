@@ -1,12 +1,12 @@
+import animate from "tailwindcss-animate";
+import typography from "@tailwindcss/typography";
+
 /** @type {import('tailwindcss').Config} */
-module.exports = {
+export default {
     darkMode: ["class"],
     content: ["./index.html", "./src/**/*.{ts,tsx,js,jsx}"],
   theme: {
   	extend: {
-  		backgroundImage: {
-  			'login-bg': "url('./src/assets/images/5184015.jpg')"
-  		},
   		borderRadius: {
   			lg: 'var(--radius)',
   			md: 'calc(var(--radius) - 2px)',
@@ -66,6 +66,5 @@ module.exports = {
   		}
   	}
   },
-	// eslint-disable-next-line no-undef
-  plugins: [require("tailwindcss-animate")],
+  plugins: [animate, typography],
 }
